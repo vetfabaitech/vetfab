@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+/* Tailwind v4 is CSS-first (no tailwind.config.js) -- this is the documented
+   way to make `dark:` a class-based variant (keyed off <html class="dark">,
+   toggled by layout.tsx's blocking script + useSyncThemeClass) instead of
+   the default `prefers-color-scheme` media query, matching the log-in app's
+   `darkMode: "class"` Tailwind v3 config. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Light theme (default -- no .dark class present). Palette + philosophy:
+     a cool, faintly blue-tinted neutral scale (never pure gray, never pure
+     white everywhere) so elevation reads clearly -- the editor canvas is
+     the single brightest surface in the app, chrome around it sits one or
+     two steps down, borders are hairlines rather than boxes. Modeled on the
+     same family as VS Code Light/GitHub Light/Linear/Figma. */
+  --color-app-bg: #eef1f5;
+  --color-header-bg: #ffffff;
+  --color-sidebar-bg: #f8fafc;
+  --color-editor-bg: #ffffff;
+  --color-terminal-bg: #fbfcfd;
+  --color-panel-border: #e2e6ec;
+  --color-accent: #2563eb;
+  --color-terminal-text: #16a34a;
+
+  /* Elevated surfaces (dialogs, dropdown menus, popovers, cards) --
+     deliberately the brightest surface in the palette alongside the editor,
+     so anything using it visibly "lifts" off the tinted chrome around it. */
+  --color-surface-1: #ffffff;
+  /* Secondary/inset surfaces (inactive tabs, code blocks) */
+  --color-surface-2: #eef1f5;
+  /* Sunken chrome strips (tab bar, terminal tab row, panel headers) */
+  --color-surface-sunken: #f6f8fa;
+  /* Hover feedback on menu items, icon buttons, rows */
+  --color-surface-hover: #eef1f5;
+  /* Selected nav item / current file -- calm blue highlight */
+  --color-surface-selected: #e4edfe;
+  --color-border-subtle: #e2e6ec;
+  /* Status bar -- one step darker than the sidebar/tab-strip surfaces so it
+     reads as the floor of the window, matching Vivado/VS Code's convention. */
+  --color-status-bar-bg: #eaeef3;
+
+  --color-text-primary: #1b2430;
+  --color-text-secondary: #57606e;
+  --color-text-muted: #8a93a3;
+
+  /* Muted, professional status colors -- no neon saturation. */
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+
+  /* Subtle elevation shadows -- used sparingly (panel headers, popovers,
+     dropdowns) instead of another heavy border, per the light-theme polish
+     pass. Kept faint enough not to read as a "card" everywhere. */
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(15, 23, 42, 0.03);
+  --shadow-elevated: 0 12px 28px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+:root.dark {
+  /* Dark theme (original app look, unchanged) */
+  --color-app-bg: #171717;
+  --color-header-bg: #181818;
+  --color-sidebar-bg: #181818;
+  --color-editor-bg: #1e1e1e;
+  --color-terminal-bg: #111111;
+  --color-panel-border: #2a2a2a;
+  --color-accent: #3b82f6;
+  --color-terminal-text: #4ade80;
+
+  --color-surface-1: #1f1f1f;
+  --color-surface-2: #232323;
+  --color-surface-sunken: #181818;
+  --color-surface-hover: #2a2a2a;
+  --color-surface-selected: rgba(59, 130, 246, 0.15);
+  --color-border-subtle: #3a3a3a;
+  --color-status-bar-bg: #181818;
+
+  --color-text-primary: #e5e5e5;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
+
+  --color-success: #4ade80;
+  --color-warning: #e2b93d;
+  --color-error: #f87171;
+
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+@theme inline {
+  --color-app-bg: var(--color-app-bg);
+  --color-header-bg: var(--color-header-bg);
+  --color-sidebar-bg: var(--color-sidebar-bg);
+  --color-editor-bg: var(--color-editor-bg);
+  --color-terminal-bg: var(--color-terminal-bg);
+  --color-panel-border: var(--color-panel-border);
+  --color-accent: var(--color-accent);
+  --color-terminal-text: var(--color-terminal-text);
+
+  --color-surface-1: var(--color-surface-1);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-sunken: var(--color-surface-sunken);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-surface-selected: var(--color-surface-selected);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-status-bar-bg: var(--color-status-bar-bg);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+
+  --shadow-panel: var(--shadow-panel);
+  --shadow-elevated: var(--shadow-elevated);
+
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-app-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Terminal / panel scrollbars */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-subtle) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-subtle);
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-muted);
+}
+
+/* Brief highlight flash for a Problems-panel navigation target
+   (EditorManager.flashLine) -- fades out via the transition below rather
+   than disappearing abruptly when the decoration is cleared. */
+.problem-highlight-line {
+  background-color: rgba(59, 130, 246, 0.18);
+  transition: background-color 0.6s ease-out;
+}
+
+/* Breakpoint gutter dot (useBreakpoints.ts) -- disabled breakpoints render
+   in the muted text color instead of error-red so they read as "off"
+   without a second glyph shape. */
+.breakpoint-glyph::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: 4px auto 0;
+  border-radius: 9999px;
+  background-color: var(--color-error);
+}
+
+.breakpoint-glyph.breakpoint-glyph-disabled::before {
+  background-color: var(--color-text-muted);
+}

@@ -1,0 +1,16 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+# pydantic: must satisfy realtime 2.31.0 (a supabase dep), which requires
+# >=2.11.7 -- 2.13.4 matches the tested local venv.
+pydantic==2.13.4
+pydantic-settings==2.7.1
+websockets==14.1
+docker==7.1.0
+supabase==2.31.0
+# AWS S3: file content storage (see app/services/s3_service.py). Pinned to
+# what's already installed in backend/venv.
+boto3==1.35.74
+# Verifies the session JWT the log-in backend issues (see app/api/deps.py) --
+# same pin as log-in/backend/requirements.txt, since both must agree on how
+# to decode the same token.
+python-jose[cryptography]==3.3.0

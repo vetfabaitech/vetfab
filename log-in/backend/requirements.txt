@@ -1,0 +1,16 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic-settings==2.6.1
+email-validator==2.2.0
+
+# Used by the (now real) GitHub OAuth flow: httpx talks to github.com/
+# api.github.com directly (see app/services/github_oauth.py), python-jose
+# issues/verifies the session JWT (app/services/session.py). Google's
+# /login and /google/* endpoints are still stubs -- these same two
+# libraries are what a real implementation of those would reuse too.
+python-jose[cryptography]==3.3.0
+httpx==0.27.2
+
+# User persistence (app/services/user_service.py): same Postgres project as
+# the main WebIDE backend's projects/folders/files tables.
+supabase==2.31.0

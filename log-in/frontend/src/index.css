@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+* {
+  border-color: theme("colors.neutral.200");
+}
+
+.dark * {
+  border-color: theme("colors.neutral.800");
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: theme("fontFamily.sans");
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Visible, high-contrast focus rings everywhere -- never suppressed, only
+   ever restyled. Matches WCAG 2.4.7 (Focus Visible) at AA. */
+:focus-visible {
+  outline: 2px solid theme("colors.brand.500");
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect the OS-level reduced-motion preference globally: collapse every
+   animation/transition to near-instant rather than disabling them per
+   component (so nothing is ever missed). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Forced-colors / high-contrast mode: let the OS take over borders and
+   button chrome instead of fighting it with our own soft-shadow styling. */
+@media (forced-colors: active) {
+  button,
+  input,
+  [role="alert"] {
+    forced-color-adjust: auto;
+  }
+}
+
+input::placeholder {
+  color: theme("colors.neutral.400");
+}
+
+.dark input::placeholder {
+  color: theme("colors.neutral.500");
+}
+
+/* Autofill styling: browsers otherwise force their own yellow/blue
+   background, which breaks the card's visual rhythm in both themes. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: theme("colors.neutral.900");
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-text-fill-color: theme("colors.neutral.50");
+}
