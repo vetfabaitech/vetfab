@@ -26,7 +26,14 @@ router = APIRouter()
 async def terminal_session(websocket: WebSocket, projectId: str) -> None:
     """Attach one browser tab to its own isolated, interactive shell container."""
 
+    # Diagnostic only, not a functional change -- see the matching comment
+    # in app/websocket/execute_ws.py's execute_progress: this line's
+    # presence/absence in the logs is what tells apart "reached this
+    # process and something inside failed" from "never reached this
+    # process at all" (e.g. a reverse proxy not upgrading /ws/ traffic).
+    logger.info("Terminal websocket connection received for project %s", projectId)
     await websocket.accept()
+    logger.info("Terminal websocket accepted for project %s", projectId)
     terminal_service = get_terminal_service()
 
     try:

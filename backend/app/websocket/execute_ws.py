@@ -33,7 +33,17 @@ async def execute_progress(websocket: WebSocket, jobId: str) -> None:
     """Stream real reconstruct+compile+simulate progress/output/result, then
     close gracefully."""
 
+    # Diagnostic only, not a functional change: this is the earliest point
+    # in the whole execute pipeline where we can prove the browser's
+    # WebSocket upgrade actually reached this process (vs. dying at a
+    # reverse proxy / never being opened by the client at all -- both
+    # produce identical symptoms downstream: job stays "queued", no
+    # container, no further logs). If this line is missing from the logs
+    # for a job that logged "queued", the request never reached FastAPI;
+    # if it's present, the stall is somewhere inside stream_execution below.
+    logger.info("Execute websocket connection received for job %s", jobId)
     await websocket.accept()
+    logger.info("Execute websocket accepted for job %s", jobId)
     manager = get_execution_manager()
 
     try:
