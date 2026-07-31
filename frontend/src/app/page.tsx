@@ -34,11 +34,11 @@ import { findTopModuleForTestbenchGeneration, TopModuleForTestbench } from "@/se
 import { HdlLanguage, LogEntry } from "@/lib/types";
 import type { ProblemEntry } from "@/types/diagnostics";
 import type { CompilerDiagnostic } from "@/services/diagnostics/compilerOutputParser";
+import { getApiUrl, getWsUrl } from "@/lib/env";
 
 const DEFAULT_RUN_TAB_ID = "design";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
+const API_URL = getApiUrl();
 const PROJECT_ID = "local-project";
 
 let logIdCounter = 0;
@@ -264,7 +264,7 @@ function IdeWorkspace() {
 
       return await new Promise<{ status: string }>((resolve, reject) => {
         let settled = false;
-        const ws = new WebSocket(`${WS_URL}/ws/execute/${jobId}`);
+        const ws = new WebSocket(`${getWsUrl()}/ws/execute/${jobId}`);
         wsRef.current = ws;
 
         ws.onmessage = (event) => {

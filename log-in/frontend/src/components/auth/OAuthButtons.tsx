@@ -5,6 +5,7 @@ import { GitHubIcon } from "@/components/icons/GitHubIcon";
 import type { AuthSession } from "@/lib/mockAuth";
 import { startGithubLogin, startGoogleLogin } from "@/lib/realAuth";
 import { cn } from "@/lib/utils";
+import { REDIRECT_STORAGE_KEY, useRedirectTarget } from "@/lib/useRedirectTarget";
 
 type Provider = "google" | "github";
 
@@ -26,10 +27,19 @@ const PROVIDER_CONFIG: Record<Provider, { label: string; Icon: typeof GoogleIcon
 
 export function OAuthButtons({ disabled, onBusyChange }: OAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
+  const redirectTarget = useRedirectTarget();
 
   const handleClick = (provider: Provider) => {
     setLoadingProvider(provider);
     onBusyChange?.(true);
+    // The `?redirect=` query param this page was loaded with doesn't
+    // survive the round trip to the provider's consent screen and back --
+    // the provider controls what it appends to its own callback URL. Stash
+    // it in sessionStorage (same origin, survives full navigations) so
+    // AuthCallbackPage can read it back once the OAuth exchange completes
+    // and hand it off to the main app instead of always landing on the
+    // default workspace route.
+    window.sessionStorage.setItem(REDIRECT_STORAGE_KEY, redirectTarget);
     // Navigates the browser to the backend's authorize redirect and never
     // returns -- no session to resolve here, no cleanup, since the page
     // is about to unload.

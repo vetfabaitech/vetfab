@@ -23,14 +23,14 @@ import WelcomeScreen from "./WelcomeScreen";
 import StickyModuleHeader from "./StickyModuleHeader";
 import QuickActionToolbar from "./QuickActionToolbar";
 import type { FolderNodeData } from "@/types/explorer";
+import { getApiUrl, getWsUrl } from "@/lib/env";
 
 /** verible-verilog-format only understands Verilog/SystemVerilog -- "Format
  * on Save" silently skips anything else (VHDL, .tcl, .md, ...) rather than
  * firing a network call that's guaranteed to fail. */
 const VERIBLE_FORMATTABLE = /\.(v|sv|svh|vh)$/i;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
+const API_URL = getApiUrl();
 
 interface MultiFileEditorProps {
   projectId: string;
@@ -82,7 +82,7 @@ export default function MultiFileEditor({ projectId, onRun, onStop, onRestart, i
   // Verilog/SystemVerilog language intelligence: svlangserver (completion/
   // hover/definition/etc, via WS /ws/lsp) and Verilator (on-save/debounced
   // lint markers, via POST /api/v1/lint) -- see backend/README.md.
-  useLspClient({ monaco, projectId, apiUrl: API_URL, wsUrl: WS_URL, tabs, activeTabId, nodes, rootId });
+  useLspClient({ monaco, projectId, apiUrl: API_URL, wsUrl: getWsUrl(), tabs, activeTabId, nodes, rootId });
   const { lintNow } = useVerilatorLint({ monaco, apiUrl: API_URL, projectId, nodes, rootId, tabs });
 
   const handleEditorMount: OnMount = useCallback((editorInstance, monacoInstance) => {

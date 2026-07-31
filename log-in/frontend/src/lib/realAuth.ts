@@ -6,7 +6,12 @@
  * and/or GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET set (see
  * ../../backend/.env.example). */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// "/auth" is this app's own auth backend reachable through Nginx's /auth/
+// prefix on the same origin (see the deployment routing table) -- safe as
+// a same-origin production default, unlike a hardcoded host:port. Without
+// any fallback at all, an unset env var made every call here fetch
+// "undefined/api/v1/...".
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/auth";
 const TOKEN_KEY = "hdl_webide_access_token";
 
 export class RealAuthError extends Error {}

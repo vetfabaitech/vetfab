@@ -6,9 +6,9 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { applyLiveTerminalFiles } from "@/store/explorerStore";
 import { useSettingsStore } from "@/store/settingsStore";
+import { getApiUrl, getWsUrl } from "@/lib/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
+const API_URL = getApiUrl();
 
 interface TerminalFile {
   name: string;
@@ -240,7 +240,7 @@ const ShellTerminal = forwardRef<ShellTerminalHandle, ShellTerminalProps>(functi
     });
 
     let cancelled = false;
-    const ws = new WebSocket(`${WS_URL}/ws/terminal/${projectId}`);
+    const ws = new WebSocket(`${getWsUrl()}/ws/terminal/${projectId}`);
     wsRef.current = ws;
 
     ws.onopen = () => {

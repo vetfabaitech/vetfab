@@ -34,8 +34,9 @@ import { fileIdForRelativePath } from "@/services/lsp/workspacePaths";
 import { extname, isTextExtension } from "@/utils/format";
 import { buildProjectScaffold } from "@/services/workspace/scaffold";
 import { buildLanguageProjectFiles, ProjectLanguage } from "@/services/workspace/languageTemplates";
+import { getApiUrl } from "@/lib/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL = getApiUrl();
 
 const DEFAULT_SORT: SortOptions = { field: "name", direction: "asc", folderPosition: "first" };
 const DEFAULT_VIEW: ViewOptions = {

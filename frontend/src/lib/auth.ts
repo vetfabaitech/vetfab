@@ -1,10 +1,21 @@
-/** Shared by AuthGuard and the /auth/handoff receiving page -- the token
+/** Shared by AuthGuard and the /handoff receiving page -- the token
  * the log-in app (see ../../../log-in/frontend) hands off after a
  * successful sign-in. Session-only concern for now: nothing in this app
  * verifies the token against the backend yet, it's just a "did the user
  * come from a completed login" marker (see AuthGuard's doc comment for
  * that scope boundary). */
 export const AUTH_TOKEN_KEY = "hdl_webide_token";
+
+/** Only allows same-origin relative paths through as a post-login redirect
+ * target -- rejects absolute URLs ("https://evil.com/x") and
+ * protocol-relative ones ("//evil.com/x", "/\\evil.com/x") so a crafted
+ * `redirect` value can't send a signed-in user off to a different origin
+ * (open redirect / phishing). Both AuthGuard (building the value) and
+ * /handoff (consuming it) go through this. */
+export function sanitizeRedirectPath(value: string | null | undefined, fallback = "/"): string {
+  if (!value) return fallback;
+  return /^\/(?!\/|\\)/.test(value) ? value : fallback;
+}
 
 export function getStoredAuthToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -46,14 +57,26 @@ export function getTokenSubject(token: string): string | null {
   return typeof sub === "string" ? sub : null;
 }
 
+// "/login" and "/auth" below are same-origin, reachable through Nginx's
+// /login/ and /auth/ prefixes (see the deployment routing table) -- safe
+// production defaults that need no configuration, unlike a hardcoded
+// host:port. Local dev overrides both via .env.local (each app runs on
+// its own port there with no reverse proxy in front).
 export function getLoginAppUrl(): string {
-  return process.env.NEXT_PUBLIC_LOGIN_APP_URL ?? "http://localhost:5174";
+  return process.env.NEXT_PUBLIC_LOGIN_APP_URL || "/login";
+}
+
+/** getLoginAppUrl() without a trailing slash, however it's configured --
+ * callers append their own single "/" so an accidentally-trailing-slash
+ * env value (e.g. "/login/") can't produce a "//" in the final URL. */
+function loginAppRoot(): string {
+  return getLoginAppUrl().replace(/\/+$/, "");
 }
 
 /** The auth backend (see ../../../log-in/backend), not this app's own
  * :8000 backend -- profile/username data lives there (app/api/user.py). */
 export function getAuthApiUrl(): string {
-  return process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8010";
+  return process.env.NEXT_PUBLIC_AUTH_API_URL || "/auth";
 }
 
 export interface UserProfile {
@@ -103,5 +126,5 @@ export async function fetchUserProfile(): Promise<UserProfile> {
 export function signOut(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(AUTH_TOKEN_KEY);
-  window.location.assign(getLoginAppUrl());
+  window.location.assign(`${loginAppRoot()}/`);
 }

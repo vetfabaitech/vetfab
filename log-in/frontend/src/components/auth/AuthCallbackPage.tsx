@@ -6,11 +6,19 @@ import { AuthCardShell } from "./AuthCardShell";
 import { SuccessState } from "./SuccessState";
 import { ErrorAlert } from "./ErrorAlert";
 import { completeGithubLogin, completeGoogleLogin, RealAuthError } from "@/lib/realAuth";
+import { REDIRECT_STORAGE_KEY, sanitizeRedirectTarget } from "@/lib/useRedirectTarget";
+import { withBase } from "@/lib/basePath";
 
 type Status = "exchanging" | "success" | "error";
 type Provider = "github" | "google";
 
-const MAIN_APP_URL = import.meta.env.VITE_APP_URL ?? "http://localhost:3000";
+// The main WebIDE and this login app are deployed on the *same* origin in
+// production (Nginx routes / to the former, /login/ to this one -- see the
+// deployment notes) -- window.location.origin is therefore always correct
+// there without configuring a host anywhere. VITE_APP_URL only needs to be
+// set when the two are deliberately split across origins/ports, which is
+// also how local dev uses it (main app on :3000, this app on :5174).
+const MAIN_APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 const PROVIDER_LABEL: Record<Provider, string> = { github: "GitHub", google: "Google" };
 const PROVIDER_COMPLETE: Record<Provider, typeof completeGithubLogin> = {
@@ -22,12 +30,21 @@ interface AuthCallbackPageProps {
   provider: Provider;
 }
 
-/** Hands the session token to the main WebIDE (a different origin/port --
- * see ../../../frontend/src/app/auth/handoff/page.tsx for the receiving
- * end) via a URL fragment rather than a query string, so it never reaches
- * server logs or a Referer header. */
+/** Hands the session token to the main WebIDE (a different origin/port in
+ * dev, same origin behind Nginx in prod -- see
+ * ../../../../frontend/src/app/handoff/page.tsx for the receiving end) via
+ * a URL fragment rather than a query string, so it never reaches server
+ * logs or a Referer header. Also forwards whichever page the user was
+ * originally trying to reach (stashed by OAuthButtons before this OAuth
+ * round trip started) so /handoff can send them back there instead of
+ * always landing on the default workspace route. */
 function redirectToMainApp(accessToken: string): void {
-  window.location.assign(`${MAIN_APP_URL}/auth/handoff#token=${encodeURIComponent(accessToken)}`);
+  const pending = window.sessionStorage.getItem(REDIRECT_STORAGE_KEY);
+  window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
+  const redirect = sanitizeRedirectTarget(pending);
+  window.location.assign(
+    `${MAIN_APP_URL}/handoff#token=${encodeURIComponent(accessToken)}&redirect=${encodeURIComponent(redirect)}`
+  );
 }
 
 /** Landing point for a provider's redirect back after the user approves (or
@@ -74,7 +91,7 @@ export function AuthCallbackPage({ provider }: AuthCallbackPageProps) {
           // First time this account has signed in -- no `users` row yet.
           // Same-origin nav, so the session token already written to
           // sessionStorage by the complete*Login call survives the hop.
-          window.location.assign("/onboarding");
+          window.location.assign(withBase("/onboarding"));
           return;
         }
         setStatus("success");
@@ -107,7 +124,7 @@ export function AuthCallbackPage({ provider }: AuthCallbackPageProps) {
             <ErrorAlert message={errorMessage} />
           </div>
           <a
-            href="/"
+            href={withBase("/")}
             className="mt-2 inline-flex min-h-[44px] items-center justify-center rounded-control bg-brand-600 px-5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-brand-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950"
           >
             Back to sign in

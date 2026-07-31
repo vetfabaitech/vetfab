@@ -6,12 +6,26 @@ import { Logo } from "@/components/icons/Logo";
 import { ErrorAlert } from "@/components/auth/ErrorAlert";
 import { getCurrentUser, type RealUser, type Profile } from "@/lib/realAuth";
 import { ProfileForm } from "./ProfileForm";
+import { REDIRECT_STORAGE_KEY, sanitizeRedirectTarget } from "@/lib/useRedirectTarget";
+import { withBase } from "@/lib/basePath";
 
-const MAIN_APP_URL = import.meta.env.VITE_APP_URL ?? "http://localhost:3000";
+// Same-origin in production (Nginx routes / to the main app, /login/ to
+// this one) -- see AuthCallbackPage.tsx's MAIN_APP_URL for the full
+// rationale, which this mirrors.
+const MAIN_APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 function redirectToMainApp(): void {
   const token = window.sessionStorage.getItem("hdl_webide_access_token");
-  window.location.assign(`${MAIN_APP_URL}/auth/handoff#token=${encodeURIComponent(token ?? "")}`);
+  // Still the same pending redirect OAuthButtons stashed before this whole
+  // sign-in-then-onboard flow started -- AuthCallbackPage only consumes it
+  // when it hands off directly, which didn't happen here (it routed to
+  // /onboarding instead), so it's still there to read now.
+  const pending = window.sessionStorage.getItem(REDIRECT_STORAGE_KEY);
+  window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
+  const redirect = sanitizeRedirectTarget(pending);
+  window.location.assign(
+    `${MAIN_APP_URL}/handoff#token=${encodeURIComponent(token ?? "")}&redirect=${encodeURIComponent(redirect)}`
+  );
 }
 
 /** One-time "create your IDE identity" step -- landed on from
@@ -27,7 +41,7 @@ export function CompleteProfilePage() {
   useEffect(() => {
     getCurrentUser().then((user) => {
       if (!user) {
-        window.location.assign("/");
+        window.location.assign(withBase("/"));
         return;
       }
       setOauthUser(user);

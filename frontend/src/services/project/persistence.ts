@@ -11,8 +11,9 @@
  * asking. AuthGuard guarantees a token exists before any of this app's pages
  * render, so `authHeaders()` is never called with nothing stored. */
 import { getStoredAuthToken } from "@/lib/auth";
+import { getApiUrl } from "@/lib/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL = getApiUrl();
 
 function authHeaders(): HeadersInit {
   const token = getStoredAuthToken();
