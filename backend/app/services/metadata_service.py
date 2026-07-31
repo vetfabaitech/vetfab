@@ -33,14 +33,21 @@ class MetadataService:
     def __init__(self, url: str, service_role_key: str) -> None:
         self._url = url
         self._key = service_role_key
-        self._client: Client | None = None
 
     def _client_or_raise(self) -> Client:
+        # Deliberately not cached: every call site here runs inside
+        # asyncio.to_thread, so a shared Client (and the single httpx
+        # connection pool it owns) ends up used concurrently across
+        # threads -- that's what was producing intermittent
+        # httpx.RemoteProtocolError: Server disconnected under concurrent
+        # get_folders()/get_files() calls. A fresh client per call gives
+        # each thread its own connection, at the cost of a new client
+        # object per request (no persistent pooling) -- the same tradeoff
+        # already made for the offsetting simplicity elsewhere in this
+        # class.
         if not self._url or not self._key:
             raise SupabaseError("Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing)")
-        if self._client is None:
-            self._client = create_client(self._url, self._key)
-        return self._client
+        return create_client(self._url, self._key)
 
     # -- projects -------------------------------------------------------
 
