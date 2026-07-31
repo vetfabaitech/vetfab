@@ -1,8 +1,12 @@
 import { useMemo } from "react";
 
 /** Default post-login destination (a path inside the main WebIDE app, not
- * this login app) when no `?redirect=` was supplied. */
-const DEFAULT_REDIRECT_TARGET = "/workspace";
+ * this login app) when no `?redirect=` was supplied. The IDE is served at
+ * the main app's root ("/"), not "/workspace" -- there is no /workspace
+ * route, so that value 404'd on every login that didn't arrive with an
+ * explicit `?redirect=` (i.e. GitHub/Google sign-in from the login app's
+ * own landing page, not bounced here by AuthGuard). */
+const DEFAULT_REDIRECT_TARGET = "/";
 
 /** sessionStorage key the redirect target is stashed under while the
  * browser round-trips to a GitHub/Google consent screen and back -- see
