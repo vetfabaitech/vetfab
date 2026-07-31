@@ -4,11 +4,13 @@ after GitHub OAuth. See app/api/auth.py's github_callback for how a
 session ends up "pending" (no `users` row yet) in the first place.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.api.deps import get_session_claims
-from app.schemas.user import CheckUsernameResponse, CompleteProfileRequest, ProfileOut
+from app.config import get_settings
+from app.schemas.user import CheckUsernameResponse, CompleteProfileRequest, CompleteProfileResponse, ProfileOut
 from app.services.project_bootstrap import ProjectBootstrapError, create_welcome_project
+from app.services.session import create_session_token
 from app.services.user_service import UserServiceError, UsernameTakenError, get_user_service
 from app.utils.logger import get_logger
 from app.utils.username import validate_username_format
@@ -16,6 +18,12 @@ from app.utils.username import validate_username_format
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1/user", tags=["user"])
+
+# Same cookie name/settings as app/api/auth.py's github_callback/google_callback
+# -- complete_profile below reissues this exactly the same way they do,
+# since it's minting a session token for the same reason they are (a new
+# `sub`), just one step later in the flow.
+_SESSION_COOKIE = "hdl_webide_session"
 
 
 def _parse_pending_subject(sub: str) -> tuple[str, str]:
@@ -45,10 +53,10 @@ async def check_username(username: str) -> CheckUsernameResponse:
     return CheckUsernameResponse(available=True)
 
 
-@router.post("/complete-profile", response_model=ProfileOut)
+@router.post("/complete-profile", response_model=CompleteProfileResponse)
 async def complete_profile(
-    body: CompleteProfileRequest, claims: dict = Depends(get_session_claims)
-) -> ProfileOut:
+    body: CompleteProfileRequest, response: Response, claims: dict = Depends(get_session_claims)
+) -> CompleteProfileResponse:
     provider, oauth_id = _parse_pending_subject(claims["sub"])
 
     username = body.username.strip().lower()
@@ -89,7 +97,36 @@ async def complete_profile(
     except ProjectBootstrapError as exc:
         logger.warning("Welcome project creation failed for user '%s': %s", user["id"], exc)
 
-    return ProfileOut.model_validate(user)
+    # The token this request authenticated with still carries the
+    # pre-onboarding placeholder subject ("github:<oauth_id>", parsed apart
+    # above) -- it was only ever good for reaching this endpoint (see
+    # _parse_pending_subject). Now that a real `users` row exists, mint a
+    # fresh token with that row's own uuid `id` as `sub`, exactly like
+    # app/api/auth.py's github_callback/google_callback do for a *returning*
+    # user. Callers MUST switch to this token: continuing to use the old one
+    # sends a non-uuid string ("github:<oauth_id>") anywhere a `sub` gets
+    # used as a Postgres uuid value -- e.g. the main WebIDE backend's
+    # projects.owner_id column -- which fails outright rather than silently
+    # misbehaving.
+    session_token = create_session_token(
+        subject=user["id"],
+        email=user["email"],
+        name=user["display_name"],
+        avatar_url=user.get("avatar_url"),
+        provider=provider,
+    )
+
+    settings = get_settings()
+    response.set_cookie(
+        _SESSION_COOKIE,
+        session_token,
+        max_age=settings.jwt_expires_minutes * 60,
+        httponly=True,
+        samesite="lax",
+        secure=False,  # flip to True once this is served over HTTPS
+    )
+
+    return CompleteProfileResponse(profile=ProfileOut.model_validate(user), accessToken=session_token)
 
 
 @router.get("/profile", response_model=ProfileOut)

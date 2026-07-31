@@ -35,3 +35,17 @@ class ProfileOut(BaseModel):
     preferredHdl: str = Field(..., validation_alias="preferred_hdl")
     theme: str
     defaultVisibility: str = Field(..., validation_alias="default_visibility")
+
+
+class CompleteProfileResponse(BaseModel):
+    """Response for POST /complete-profile. Carries a freshly-minted session
+    token alongside the new profile: the token the caller authenticated
+    this request with still has the pre-onboarding placeholder subject
+    ("github:<oauth_id>", see app/api/auth.py's github_callback), not the
+    real `users.id` (uuid) this endpoint just created -- callers must swap
+    to `accessToken` for every request after this one (see app/api/user.py's
+    complete_profile for why leaving that swap out sends a non-uuid value
+    to any endpoint that uses it as owner_id)."""
+
+    profile: ProfileOut
+    accessToken: str

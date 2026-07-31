@@ -167,7 +167,19 @@ export async function completeProfile(input: CompleteProfileInput): Promise<Prof
     const body = await response.json().catch(() => null);
     throw new RealAuthError(body?.detail ?? "Unable to save your profile. Please try again.");
   }
-  return response.json();
+  const body = (await response.json()) as { profile: Profile; accessToken: string };
+  // The token that authenticated this request still carries the
+  // pre-onboarding placeholder subject ("github:<oauth_id>", see the
+  // backend's _parse_pending_subject) -- it was only ever good for reaching
+  // this endpoint. Completing the profile just created the real (uuid)
+  // `users` row, so the backend minted a fresh token with that row's own id
+  // as `sub` (see app/api/user.py's complete_profile) and returned it here.
+  // Swap it in now: CompleteProfilePage's redirectToMainApp reads whatever
+  // is under this key, and handing the main app the *old* placeholder
+  // token is exactly what caused "invalid input syntax for type uuid" once
+  // it reached Supabase as projects.owner_id.
+  window.sessionStorage.setItem(TOKEN_KEY, body.accessToken);
+  return body.profile;
 }
 
 export async function getProfile(): Promise<Profile | null> {
