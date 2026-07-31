@@ -81,11 +81,25 @@ function SurferFrame({ vcdUrl, focusedSignalPath }: { vcdUrl: string; focusedSig
   useEffect(() => {
     let cancelled = false;
 
-    fetch(vcdUrl)
+    // Surfer (the WASM app in the iframe) parses `load_url` with Rust's
+    // `url` crate, which -- unlike a browser's own fetch()/<a href> --
+    // has no notion of "relative to the current document" and errors with
+    // RelativeUrlWithoutBase on a bare path. `vcdUrl` is exactly that kind
+    // of bare path in production (getApiUrl() intentionally returns "" so
+    // this app's own same-origin fetch() calls resolve correctly through
+    // Nginx's /api/ proxy -- see lib/env.ts). Resolving it against
+    // window.location.origin here makes it absolute for Surfer specifically,
+    // without changing what the rest of this app does with the same URL
+    // (the download link below still works fine with a relative path, and
+    // this is a no-op if vcdUrl is already absolute, e.g. local dev with
+    // NEXT_PUBLIC_API_URL set).
+    const absoluteVcdUrl = new URL(vcdUrl, window.location.origin).toString();
+
+    fetch(absoluteVcdUrl)
       .then((res) => res.text())
       .then((text) => {
         if (cancelled) return;
-        const params = new URLSearchParams({ load_url: vcdUrl });
+        const params = new URLSearchParams({ load_url: absoluteVcdUrl });
         // Objects panel "click a signal" -> best-effort focus: reuses this
         // same proven `scope_add_recursive` startup command, targeting the
         // clicked signal's own containing scope (dropping its leaf name)
@@ -101,7 +115,7 @@ function SurferFrame({ vcdUrl, focusedSignalPath }: { vcdUrl: string; focusedSig
       .catch(() => {
         // Couldn't read the VCD to find a scope name -- still load it, just
         // without auto-selecting variables (falls back to the old behavior).
-        if (!cancelled) setSrc(`/surfer/index.html?${new URLSearchParams({ load_url: vcdUrl })}`);
+        if (!cancelled) setSrc(`/surfer/index.html?${new URLSearchParams({ load_url: absoluteVcdUrl })}`);
       });
 
     return () => {
